@@ -1,0 +1,28 @@
+{
+    "$schema": "../kdeconnect.schema.json",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "deskcam@kde.org",
+                "Name": "DeskCam Contributors"
+            }
+        ],
+        "Description": "Stream your desktop screen to a remote device",
+        "Description[hu]": "Képernyőtartalom közvetítése távoli eszközre",
+        "EnabledByDefault": true,
+        "Icon": "video-display",
+        "License": "GPL",
+        "Name": "Remote Video (DeskCam)",
+        "Name[hu]": "Távoli videó (DeskCam)"
+    },
+    "X-KdeConnect-OutgoingPacketType": [
+        "kdeconnect.remotevideo.capabilities",
+        "kdeconnect.remotevideo.stream.start",
+        "kdeconnect.remotevideo.stream.stop"
+    ],
+    "X-KdeConnect-SupportedPacketType": [
+        "kdeconnect.remotevideo.getcapabilities",
+        "kdeconnect.remotevideo.request",
+        "kdeconnect.remotevideo.stop"
+    ]
+}
