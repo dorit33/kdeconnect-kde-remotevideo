@@ -5,6 +5,6 @@ target_link_libraries(kdeconnect_remotevideo
     Qt::Gui
 )
 
-install(FILES wayland_screencast.py
+install(FILES gnome_screencast.py
     DESTINATION ${KDE_INSTALL_QTPLUGINDIR}/kdeconnect
 )

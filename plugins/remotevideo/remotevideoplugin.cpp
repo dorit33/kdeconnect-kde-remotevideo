@@ -18,7 +18,6 @@
 #include <QTimer>
 #include <QCoreApplication>
 #include <QFile>
-#include <QStandardPaths>
 
 #include "plugin_remotevideo_debug.h"
 #include <core/device.h>
@@ -143,29 +142,10 @@ void RemoteVideoPlugin::startStream(int width, int height, int quality)
     bool isWayland = qEnvironmentVariable("XDG_SESSION_TYPE") == QLatin1String("wayland");
 
     if (isWayland) {
-        // Use Wayland ScreenCast helper script with pipewiresrc
-        // Search in multiple locations for portability across distros
-        QString scriptPath;
-        QStringList searchPaths{
-            QStringLiteral("%1/kdeconnect/wayland_screencast.py").arg(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)),
-            QStringLiteral("%1/wayland_screencast.py").arg(QCoreApplication::applicationDirPath()),
-            QStringLiteral("%1/../wayland_screencast.py").arg(QCoreApplication::applicationDirPath()),
-            // Common install locations
-            QStringLiteral("/usr/lib/qt6/plugins/kdeconnect/wayland_screencast.py"),
-            QStringLiteral("/usr/lib64/qt6/plugins/kdeconnect/wayland_screencast.py"),
-            QStringLiteral("/usr/lib/x86_64-linux-gnu/qt6/plugins/kdeconnect/wayland_screencast.py"),
-        };
-        for (const auto &p : searchPaths) {
-            if (QFile::exists(p)) {
-                scriptPath = p;
-                break;
-            }
-        }
-        if (scriptPath.isEmpty()) {
-            qCCritical(KDECONNECT_PLUGIN_REMOTEVIDEO) << "wayland_screencast.py not found in any search path";
-            NetworkPacket errNp(PACKET_TYPE_REMOTEVIDEO_STREAM_STOP);
-            sendPacket(errNp);
-            return;
+        // Use GNOME ScreenCast helper script with pipewiresrc
+        QString scriptPath = QStringLiteral("/usr/lib64/qt6/plugins/kdeconnect/gnome_screencast.py");
+        if (!QFile::exists(scriptPath)) {
+            scriptPath = QStringLiteral("%1/../gnome_screencast.py").arg(QCoreApplication::applicationDirPath());
         }
         qCInfo(KDECONNECT_PLUGIN_REMOTEVIDEO) << "Wayland detected, using GNOME ScreenCast script:" << scriptPath;
 
@@ -183,26 +163,24 @@ void RemoteVideoPlugin::startStream(int width, int height, int quality)
             "gst-launch-1.0 -e dx9screencapsrc ! "
             "videoconvert ! videoscale ! "
             "video/x-raw,width=%1,height=%2,framerate=30/1 ! "
-            "openh264enc bitrate=%3 usage-type=screen complexity=low gop-size=30 ! "
+            "openh264enc bitrate=%3 complexity=low gop-size=30 ! "
             "h264parse config-interval=-1 ! "
             "video/x-h264,stream-format=byte-stream,alignment=au ! "
             "tcpserversink host=0.0.0.0 port=%4 sync=false recover-policy=keyframe"
         ).arg(width).arg(height).arg(bitrate).arg(REMOTEVIDEO_STREAM_PORT);
-        qCInfo(KDECONNECT_PLUGIN_REMOTEVIDEO) << "Starting GStreamer pipeline:" << pipeline;
-        m_gstProcess->start(QStringLiteral("cmd"), QStringList{QStringLiteral("/c"), pipeline});
 #else
         QString pipeline = QStringLiteral(
             "gst-launch-1.0 -e ximagesrc use-damage=false ! "
             "videoconvert ! videoscale ! "
             "video/x-raw,width=%1,height=%2,framerate=30/1 ! "
-            "openh264enc bitrate=%3 usage-type=screen complexity=low gop-size=30 ! "
+            "openh264enc bitrate=%3 complexity=low gop-size=30 ! "
             "h264parse config-interval=-1 ! "
             "video/x-h264,stream-format=byte-stream,alignment=au ! "
             "tcpserversink host=0.0.0.0 port=%4 sync=false recover-policy=keyframe"
         ).arg(width).arg(height).arg(bitrate).arg(REMOTEVIDEO_STREAM_PORT);
+#endif
         qCInfo(KDECONNECT_PLUGIN_REMOTEVIDEO) << "Starting GStreamer pipeline:" << pipeline;
         m_gstProcess->start(QStringLiteral("bash"), QStringList{QStringLiteral("-c"), pipeline});
-#endif
     }
 
     connect(m_gstProcess, &QProcess::errorOccurred, this, [](QProcess::ProcessError err) {

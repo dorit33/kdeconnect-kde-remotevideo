@@ -1,0 +1,30 @@
+# Maintainer: DeskCam Contributors
+# PKGBUILD for KDE Connect RemoteVideo plugin (Arch Linux / Garuda Linux)
+# Pre-built binary package — no compilation needed
+
+pkgname=kdeconnect-remotevideo
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="RemoteVideo screen mirroring plugin for KDE Connect (Wayland/X11)"
+arch=('x86_64')
+url="https://github.com/KDE/kdeconnect-kde"
+license=('GPL2' 'GPL3')
+depends=('kdeconnect' 'gst-plugins-good' 'gst-plugins-bad' 'openh264' 'pipewire' 'python-gobject' 'gst-pipewire')
+source=("remotevideo-plugin.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "$srcdir/kdeconnect-remotevideo-$pkgver"
+
+    # Install the pre-built .so plugin
+    install -Dm755 kdeconnect_remotevideo.so \
+        "$pkgdir/usr/lib/qt6/plugins/kdeconnect/kdeconnect_remotevideo.so"
+
+    # Install the GNOME ScreenCast Python helper
+    install -Dm644 gnome_screencast.py \
+        "$pkgdir/usr/lib/qt6/plugins/kdeconnect/gnome_screencast.py"
+
+    # Install the JSON metadata
+    install -Dm644 kdeconnect_remotevideo.json \
+        "$pkgdir/usr/lib/qt6/plugins/kdeconnect/kdeconnect_remotevideo.json"
+}
