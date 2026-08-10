@@ -10,11 +10,11 @@ JSON_NAME="kdeconnect_remotevideo.json"
 # Resolve script directory (where built .so and source files live)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Find the built .so — could be in build dir or alongside this script
+# Find the built .so — could be next to this script (tarball) or in a build dir
 find_so() {
-    # Look in common build locations
     for candidate in \
         "$SCRIPT_DIR/kdeconnect_remotevideo.so" \
+        "$(pwd)/kdeconnect_remotevideo.so" \
         "$SCRIPT_DIR/../../build-remotevideo/bin/kdeconnect/kdeconnect_remotevideo.so" \
         "$SCRIPT_DIR/build/bin/kdeconnect/kdeconnect_remotevideo.so"; do
         if [ -f "$candidate" ]; then
