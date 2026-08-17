@@ -1,5 +1,5 @@
 #!/bin/bash
-# RemoteVideo plugin installer/uninstaller for KDE Connect
+# KDE Connect RemoteVideo + Clipboard Wayland Fix installer/uninstaller
 # Supports: Fedora, Arch/Garuda, Debian/Ubuntu, openSUSE
 set -e
 
@@ -103,7 +103,7 @@ do_uninstall() {
     fi
 
     echo "============================================"
-    echo "  RemoteVideo Plugin — Uninstall"
+    echo "  KDE Connect Plugins — Uninstall"
     echo "============================================"
     echo ""
     echo "Plugin directory: $PLUGIN_DIR"
@@ -151,12 +151,11 @@ do_install() {
     local PLUGIN_DIR=$(detect_plugin_dir)
     if [ -z "$PLUGIN_DIR" ]; then
         echo "ERROR: Could not find KDE Connect plugin directory."
-        echo "Is kdeconnect installed? Looking for qt6/plugins/kdeconnect/"
         exit 1
     fi
 
     echo "============================================"
-    echo "  KDE Connect RemoteVideo Plugin Installer"
+    echo "  KDE Connect RemoteVideo + Clipboard Installer"
     echo "============================================"
     echo ""
     echo "Detected plugin directory: $PLUGIN_DIR"
@@ -207,6 +206,7 @@ do_install() {
     echo "  (or: killall kdeconnectd && kdeconnectd --replace &)"
     echo ""
     echo "To uninstall later: sudo ./install.sh --uninstall"
+    echo "Or: curl -sL <release_url>/install.sh | sudo bash -- --uninstall"
     echo ""
 }
 
