@@ -14,6 +14,7 @@
 #include <QImage>
 #include <QMimeData>
 #include <QPixmap>
+#include <QProcess>
 #include <QStringLiteral>
 #include <QUrl>
 #include <QVariant>
@@ -61,6 +62,16 @@ ClipboardListener::ClipboardListener()
     m_clipboardMonitorTimer.start(1000); // Refresh 1s
 #endif
     connect(clipboard, &KSystemClipboard::changed, this, &ClipboardListener::updateClipboard);
+
+    // Wayland: KSystemClipboard cannot read/write clipboard from background.
+    // Poll wl-paste periodically to detect clipboard changes.
+    const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
+    if (!waylandDisplay.isEmpty()) {
+        connect(&m_waylandPollTimer, &QTimer::timeout, this, &ClipboardListener::pollWaylandClipboard);
+        m_waylandPollTimer.start(1000); // Poll every 1s
+        // Also read initial content
+        QTimer::singleShot(500, this, &ClipboardListener::pollWaylandClipboard);
+    }
 }
 
 void ClipboardListener::updateClipboard(QClipboard::Mode mode)
@@ -112,6 +123,17 @@ void ClipboardListener::updateClipboard(QClipboard::Mode mode)
 void ClipboardListener::setText(const QString &content)
 {
     refreshContent(content, ClipboardListener::ClipboardContentTypeUnknown);
+
+    // On Wayland, KSystemClipboard cannot set the clipboard from a background process
+    // (no focused window). Use wl-copy as a fallback when WAYLAND_DISPLAY is set.
+    const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
+    if (!waylandDisplay.isEmpty()) {
+        QProcess *proc = new QProcess();
+        proc->start(QStringLiteral("wl-copy"), QStringList{content});
+        connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), proc, &QProcess::deleteLater);
+        return;
+    }
+
     auto mime = new QMimeData;
     mime->setText(content);
     clipboard->setMimeData(mime, QClipboard::Clipboard);
@@ -136,6 +158,22 @@ void ClipboardListener::setFile(const KJob *job)
     } else {
         qCDebug(KDECONNECT_PLUGIN_CLIPBOARD) << "Could not receive the image for clipboard";
     }
+}
+
+void ClipboardListener::pollWaylandClipboard()
+{
+    QProcess proc;
+    proc.start(QStringLiteral("wl-paste"), QStringList{});
+    proc.waitForFinished(2000);
+    QString content = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+
+    if (content.isEmpty() || content == m_lastPolledContent) {
+        return;
+    }
+
+    m_lastPolledContent = content;
+    refreshContent(content, ClipboardContentTypeUnknown);
+    Q_EMIT clipboardChanged(content, ClipboardContentTypeUnknown);
 }
 
 #include "moc_clipboardlistener.cpp"
