@@ -68,7 +68,7 @@ ClipboardListener::ClipboardListener()
     const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
     if (!waylandDisplay.isEmpty()) {
         connect(&m_waylandPollTimer, &QTimer::timeout, this, &ClipboardListener::pollWaylandClipboard);
-        m_waylandPollTimer.start(1000); // Poll every 1s
+        m_waylandPollTimer.start(3000); // Poll every 3s (too frequent causes screen flicker)
         // Also read initial content
         QTimer::singleShot(500, this, &ClipboardListener::pollWaylandClipboard);
     }
@@ -128,6 +128,7 @@ void ClipboardListener::setText(const QString &content)
     // (no focused window). Use wl-copy as a fallback when WAYLAND_DISPLAY is set.
     const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
     if (!waylandDisplay.isEmpty()) {
+        m_lastPolledContent = content; // Prevent poll from re-detecting our own write
         QProcess *proc = new QProcess();
         proc->start(QStringLiteral("wl-copy"), QStringList{content});
         connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), proc, &QProcess::deleteLater);
