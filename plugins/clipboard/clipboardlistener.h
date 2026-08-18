@@ -12,9 +12,10 @@
 #include <QPointer>
 #include <QVariant>
 
-#if defined(Q_OS_MAC) || defined(USE_WAYLAND_CLIPBOARD_POLLING) || 1
+#if defined(Q_OS_MAC)
 #include <QTimer>
 #endif
+#include <QProcess>
 
 class KSystemClipboard;
 
@@ -57,14 +58,12 @@ Q_SIGNALS:
 
 private:
     void updateClipboard(QClipboard::Mode mode);
-    void pollWaylandClipboard();
+    void onWaylandClipboardData();
 
 #if defined(Q_OS_MAC)
     QTimer m_clipboardMonitorTimer;
 #endif
-#if defined(Q_OS_MAC) || defined(USE_WAYLAND_CLIPBOARD_POLLING) || 1
-    QTimer m_waylandPollTimer;
+    QProcess *m_wlWatchProcess = nullptr;
     QString m_lastPolledContent;
-#endif
     KSystemClipboard *clipboard;
 };

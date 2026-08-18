@@ -64,13 +64,13 @@ ClipboardListener::ClipboardListener()
     connect(clipboard, &KSystemClipboard::changed, this, &ClipboardListener::updateClipboard);
 
     // Wayland: KSystemClipboard cannot read/write clipboard from background.
-    // Poll wl-paste periodically to detect clipboard changes.
+    // Use wl-paste --watch to get notified only when clipboard actually changes.
+    // This avoids polling which causes screen flicker on GNOME/Wayland.
     const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
     if (!waylandDisplay.isEmpty()) {
-        connect(&m_waylandPollTimer, &QTimer::timeout, this, &ClipboardListener::pollWaylandClipboard);
-        m_waylandPollTimer.start(3000); // Poll every 3s (too frequent causes screen flicker)
-        // Also read initial content
-        QTimer::singleShot(500, this, &ClipboardListener::pollWaylandClipboard);
+        m_wlWatchProcess = new QProcess(this);
+        m_wlWatchProcess->start(QStringLiteral("wl-paste"), QStringList{QStringLiteral("--watch"), QStringLiteral("cat")});
+        connect(m_wlWatchProcess, &QProcess::readyReadStandardOutput, this, &ClipboardListener::onWaylandClipboardData);
     }
 }
 
@@ -161,12 +161,9 @@ void ClipboardListener::setFile(const KJob *job)
     }
 }
 
-void ClipboardListener::pollWaylandClipboard()
+void ClipboardListener::onWaylandClipboardData()
 {
-    QProcess proc;
-    proc.start(QStringLiteral("wl-paste"), QStringList{});
-    proc.waitForFinished(2000);
-    QString content = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+    QString content = QString::fromUtf8(m_wlWatchProcess->readAllStandardOutput()).trimmed();
 
     if (content.isEmpty() || content == m_lastPolledContent) {
         return;
